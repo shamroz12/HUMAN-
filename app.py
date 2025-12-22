@@ -1,82 +1,23 @@
+
 import streamlit as st
 import pickle
-import re
 import numpy as np
 
-# Load model & scaler
-model = pickle.load(open("rf_model.pkl", "rb"))
-scaler = pickle.load(open("scaler.pkl", "rb"))
+# Load model and scaler
+model = pickle.load(open("backend/rf_model.pkl", "rb"))
+scaler = pickle.load(open("backend/scaler.pkl", "rb"))
 
-st.title("🧬 HPV Epitope Scan")
-st.write("Paste HPV protein sequence to scan for CTL / HTL / B-Cell epitopes.")
+st.title("HPV Epitope Scan (Fixed)")
 
-sequence = st.text_area("Enter amino acid sequence:", height=200)
+seq = st.text_area("Paste peptide sequence (AA):")
 
-# Parameters
-st.sidebar.header("Filters & Parameters")
-
-min_conservancy = st.sidebar.slider("Min Conservancy %", 0, 100, 70)
-min_antigenicity = st.sidebar.slider("Min Antigenicity Score", 0.0, 1.0, 0.4)
-min_length = st.sidebar.slider("Min Epitope Length", 8, 20, 9)
-
-run = st.button("Scan Sequence")
-
-def sliding_windows(seq, k):
-    return [(seq[i:i+k], i, i+k) for i in range(len(seq)-k+1)]
-
-def classify_epitope(ep):
-    # Dummy calculations
-    antigenicity = np.random.uniform(0,1)
-    conservancy = np.random.uniform(0,100)
-    toxicity = np.random.uniform(0,1)
-    length = len(ep)
-
-    # Build feature vector with same features as training
-    X = np.array([[
-        antigenicity,
-        conservancy,
-        toxicity,
-        length,
-        1, # class_CTL
-        0, # class_HTL
-        0, # class_Bcell
-        1, # hpv_type_16
-        0  # hpv_type_18
-    ]])
-
-    X_scaled = scaler.transform(X)
-    pred = model.predict(X_scaled)[0]
-
-    return {
-        "antigenicity": antigenicity,
-        "conservancy": conservancy,
-        "toxicity": toxicity,
-        "length": length,
-        "prediction": "Immunogenic" if pred==1 else "Non-Immunogenic"
-    }
-
-if run:
-    if not sequence:
-        st.error("Enter a sequence first.")
+if st.button("Predict"):
+    if not seq:
+        st.error("Enter a sequence.")
     else:
-        results = []
-        for k in [9, 10, 15]:
-            for ep, start, end in sliding_windows(sequence, k):
-                res = classify_epitope(ep)
-                if res["conservancy"] >= min_conservancy and \
-                   res["antigenicity"] >= min_antigenicity and \
-                   res["length"] >= min_length:
-                    results.append((ep, start, end, res))
-
-        if results:
-            st.success(f"Detected {len(results)} potential epitopes.")
-            st.dataframe([
-                {
-                    "Epitope": ep,
-                    "Start": s,
-                    "End": e,
-                    **res
-                } for ep, s, e, res in results
-            ])
-        else:
-            st.warning("No epitopes passed your filters.")
+        length = len(seq)
+        # dummy features for demo alignment
+        features = np.array([[length, 1, 1, 1, 1, 1, 1, 1]])
+        scaled = scaler.transform(features)
+        pred = model.predict(scaled)[0]
+        st.success(f"Prediction: {'Immunogenic' if pred==1 else 'Non-immunogenic'}")
