@@ -25,18 +25,32 @@ def sliding_windows(seq, k):
     return [(seq[i:i+k], i, i+k) for i in range(len(seq)-k+1)]
 
 def classify_epitope(ep):
-    # Dummy placeholder features (extend later with real predictors)
+    # Dummy calculations
     antigenicity = np.random.uniform(0,1)
     conservancy = np.random.uniform(0,100)
+    toxicity = np.random.uniform(0,1)
     length = len(ep)
 
-    X = np.array([[antigenicity, conservancy, length]])
+    # Build feature vector with same features as training
+    X = np.array([[
+        antigenicity,
+        conservancy,
+        toxicity,
+        length,
+        1, # class_CTL
+        0, # class_HTL
+        0, # class_Bcell
+        1, # hpv_type_16
+        0  # hpv_type_18
+    ]])
+
     X_scaled = scaler.transform(X)
     pred = model.predict(X_scaled)[0]
 
     return {
         "antigenicity": antigenicity,
         "conservancy": conservancy,
+        "toxicity": toxicity,
         "length": length,
         "prediction": "Immunogenic" if pred==1 else "Non-Immunogenic"
     }
